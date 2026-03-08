@@ -13,11 +13,13 @@ const CurvedLoop = ({
     return (hasTrailing ? marqueeText.replace(/\s+$/, "") : marqueeText) + "\u00A0";
   }, [marqueeText]);
 
+  const sectionRef = useRef(null);
   const measureRef = useRef(null);
   const textPathRef = useRef(null);
   const pathRef = useRef(null);
   const [spacing, setSpacing] = useState(0);
   const [offset, setOffset] = useState(0);
+  const isVisibleRef = useRef(true);
   const uid = useId();
   const pathId = `curve-${uid}`;
   const pathD = `M-100,10 Q500,${10 + curveAmount} 1540,10`;
@@ -49,10 +51,24 @@ const CurvedLoop = ({
   }, [spacing]);
 
   useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { isVisibleRef.current = entry.isIntersecting; },
+      { rootMargin: '100px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     if (!spacing || !ready) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
     let frame = 0;
     const step = () => {
-      if (!dragRef.current && textPathRef.current) {
+      if (isVisibleRef.current && !dragRef.current && textPathRef.current) {
         const delta = dirRef.current === "right" ? speed : -speed;
         const currentOffset = parseFloat(textPathRef.current.getAttribute("startOffset") || "0");
         let newOffset = currentOffset + delta;
@@ -100,7 +116,8 @@ const CurvedLoop = ({
 
   return (
     <section
-      className="-mt-10 pt-4 pb-10 sm:pt-6 sm:pb-14 relative overflow-hidden"
+      ref={sectionRef}
+      className="py-10 sm:py-12 relative overflow-hidden"
       style={{ visibility: ready ? "visible" : "hidden", cursor: cursorStyle }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -111,7 +128,7 @@ const CurvedLoop = ({
       <div className="section-container">
         <div className="flex items-center justify-center">
           <svg
-            className="select-none w-full overflow-visible block aspect-[100/12] text-[2.5rem] sm:text-[3rem] lg:text-[3.75rem] font-bold uppercase leading-none"
+            className="select-none w-full overflow-visible block aspect-[100/16] sm:aspect-[100/13] lg:aspect-[100/12] text-[3.5rem] sm:text-[3.75rem] lg:text-[4.25rem] font-bold uppercase leading-none"
             viewBox="0 0 1440 120"
           >
             <text
@@ -127,7 +144,7 @@ const CurvedLoop = ({
             {ready && (
               <text
                 xmlSpace="preserve"
-                className={`fill-primary/80 drop-shadow-[0_0_18px_rgba(34,197,94,0.45)] ${className ?? ""}`}
+                className={`fill-primary/70 drop-shadow-[0_0_16px_rgba(34,197,94,0.35)] ${className ?? ""}`}
               >
                 <textPath
                   ref={textPathRef}
@@ -147,4 +164,3 @@ const CurvedLoop = ({
 };
 
 export default CurvedLoop;
-

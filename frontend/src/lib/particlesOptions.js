@@ -1,5 +1,7 @@
+const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
 export const particlesOptions = {
-  fpsLimit: 60,
+  fpsLimit: isMobile ? 30 : 60,
   detectRetina: true,
   fullScreen: {
     enable: true,
@@ -12,10 +14,10 @@ export const particlesOptions = {
   },
   particles: {
     number: {
-      value: 250,
+      value: isMobile ? 30 : 60,
       density: {
         enable: true,
-        area: 900,
+        area: 1200,
       },
     },
     color: {
@@ -25,22 +27,22 @@ export const particlesOptions = {
       type: "circle",
     },
     opacity: {
-      value: { min: 0.25, max: 0.65 },
+      value: { min: 0.15, max: 0.5 },
     },
     size: {
-      value: { min: 1, max: 3 },
+      value: { min: 0.8, max: 2.5 },
       random: true,
     },
     links: {
       enable: true,
-      distance: 150,
+      distance: 140,
       color: "#22c55e",
-      opacity: 0.16,
-      width: 1,
+      opacity: 0.08,
+      width: 0.8,
     },
     move: {
       enable: true,
-      speed: 4.5,
+      speed: 1.5,
       direction: "none",
       random: false,
       straight: false,
@@ -53,7 +55,7 @@ export const particlesOptions = {
     detectsOn: "window",
     events: {
       onHover: {
-        enable: true,
+        enable: !isMobile,
         mode: "repulse",
       },
       onClick: {
@@ -63,10 +65,9 @@ export const particlesOptions = {
     },
     modes: {
       repulse: {
-        distance: 140,
-        duration: 0.3,
+        distance: 100,
+        duration: 0.4,
       },
     },
   },
 };
-

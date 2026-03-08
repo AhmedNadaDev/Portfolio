@@ -375,8 +375,8 @@ class App {
 
   createGeometry() {
     this.planeGeometry = new Plane(this.gl, {
-      heightSegments: 50,
-      widthSegments: 100,
+      heightSegments: 20,
+      widthSegments: 40,
     });
   }
 
@@ -422,6 +422,7 @@ class App {
 
   onTouchDown(e) {
     this.isDown = true;
+    this._unsettleNow();
     this.scroll.position = this.scroll.current;
     this.start = e.touches ? e.touches[0].clientX : e.clientX;
   }
@@ -441,6 +442,7 @@ class App {
   }
 
   onWheel(e) {
+    this._unsettleNow();
     const delta = e.deltaY || e.wheelDelta || e.detail;
 
     this.scroll.target += (delta > 0 ? this.scrollSpeed : -this.scrollSpeed) * 0.2;
@@ -488,6 +490,17 @@ class App {
     }
   }
 
+  _unsettleNow() {
+    if (this._settleTimer) {
+      clearTimeout(this._settleTimer);
+      this._settleTimer = null;
+    }
+    if (this._settled) {
+      this._settled = false;
+      if (this.onSettleCallback) this.onSettleCallback(false);
+    }
+  }
+
   update() {
     this.scroll.current = lerp(this.scroll.current, this.scroll.target, this.scroll.ease);
 
@@ -502,6 +515,21 @@ class App {
       camera: this.camera,
     });
 
+    // Settle detection
+    const velocity = Math.abs(this.scroll.current - this.scroll.target);
+    const isResting = velocity < 0.05 && !this.isDown;
+
+    if (isResting && !this._settled && !this._settleTimer) {
+      this._settleTimer = setTimeout(() => {
+        this._settleTimer = null;
+        this._settled = true;
+        if (this.onSettleCallback) this.onSettleCallback(true);
+      }, 250);
+    } else if (!isResting && !this._settled && this._settleTimer) {
+      clearTimeout(this._settleTimer);
+      this._settleTimer = null;
+    }
+
     this.scroll.last = this.scroll.current;
     this.raf = window.requestAnimationFrame(this.update.bind(this));
   }
@@ -513,18 +541,19 @@ class App {
     this.boundOnTouchMove = this.onTouchMove.bind(this);
     this.boundOnTouchUp = this.onTouchUp.bind(this);
 
-    window.addEventListener('resize', this.boundOnResize);
-    window.addEventListener('mousewheel', this.boundOnWheel);
-    window.addEventListener('wheel', this.boundOnWheel);
+    window.addEventListener('resize', this.boundOnResize, { passive: true });
+    window.addEventListener('mousewheel', this.boundOnWheel, { passive: true });
+    window.addEventListener('wheel', this.boundOnWheel, { passive: true });
     window.addEventListener('mousedown', this.boundOnTouchDown);
     window.addEventListener('mousemove', this.boundOnTouchMove);
     window.addEventListener('mouseup', this.boundOnTouchUp);
-    window.addEventListener('touchstart', this.boundOnTouchDown);
-    window.addEventListener('touchmove', this.boundOnTouchMove);
-    window.addEventListener('touchend', this.boundOnTouchUp);
+    window.addEventListener('touchstart', this.boundOnTouchDown, { passive: true });
+    window.addEventListener('touchmove', this.boundOnTouchMove, { passive: true });
+    window.addEventListener('touchend', this.boundOnTouchUp, { passive: true });
   }
 
   destroy() {
+    if (this._settleTimer) clearTimeout(this._settleTimer);
     window.cancelAnimationFrame(this.raf);
 
     window.removeEventListener('resize', this.boundOnResize);
@@ -551,8 +580,12 @@ export default function CircularGallery({
   font = 'bold 30px Figtree',
   scrollSpeed = 2,
   scrollEase = 0.05,
+  onSettle,
 }) {
   const containerRef = useRef(null);
+  const appRef = useRef(null);
+  const onSettleRef = useRef(onSettle);
+  onSettleRef.current = onSettle;
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -566,11 +599,37 @@ export default function CircularGallery({
       scrollSpeed,
       scrollEase,
     });
+    appRef.current = app;
+
+    app.onSettleCallback = (settled) => {
+      if (onSettleRef.current) onSettleRef.current(settled);
+    };
 
     return () => {
       app.destroy();
+      appRef.current = null;
     };
   }, [items, bend, textColor, borderRadius, font, scrollSpeed, scrollEase]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const app = appRef.current;
+        if (!app) return;
+        if (entry.isIntersecting) {
+          if (!app.raf) app.raf = window.requestAnimationFrame(app.update.bind(app));
+        } else {
+          if (app.raf) { window.cancelAnimationFrame(app.raf); app.raf = null; }
+        }
+      },
+      { rootMargin: '100px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div
