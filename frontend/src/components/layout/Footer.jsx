@@ -104,19 +104,9 @@ const Footer = () => {
             ))}
           </div>
 
-          {/* Bottom divider + copyright */}
-          <div className="divider-gradient w-full opacity-50" />
+          
 
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
-            <span className="text-sm text-muted-foreground/50">
-              &copy; {currentYear} Ahmed Nada. All rights reserved.
-            </span>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground/40">
-              Built with
-              <Heart size={13} className="text-primary fill-primary mx-0.5" />
-              React & Three.js
-            </div>
-          </div>
+          
         </div>
       </div>
     </footer>

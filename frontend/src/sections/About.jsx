@@ -198,7 +198,7 @@ const About = () => {
                 interfaces, and robust backends.
               </p>
               <p className="text-muted-foreground text-[0.9rem] sm:text-[0.95rem]">
-                From pixel-perfect frontends to well-structured APIs, I focus on
+                 I focus on
                 delivering solutions that are not only functional but also
                 delightful to use. I&apos;m always exploring new technologies and
                 pushing the boundaries of what&apos;s possible on the web.
